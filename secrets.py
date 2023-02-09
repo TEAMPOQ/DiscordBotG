@@ -1,0 +1,16 @@
+spotify_user_id = "bcfc853b19be4d86ae2056410e736c33"
+refresh_token = "AQAnKGNSXLg9r0N39EKtG5PEFtE45M8q69Y2f6PwRn6k2KJ8DRZjVqQMObqxTv2TeBqCmSXpy9E79HSl4S7Pz9RjwD7FMmuePJgxezZgb-3YXAlU9tA0OEgyrOvyDHzLBRY"
+playlist_id = "37i9dQZEVXbMDoHDwVN2tF"
+base_64 = "YmNmYzg1M2IxOWJlNGQ4NmFlMjA1NjQxMGU3MzZjMzM6YWNkYzMxMzhlODU3NGFkZThjOWZiNzI1M2FlNzZhY2Y="
+
+
+
+#Client ID bcfc853b19be4d86ae2056410e736c33
+#Client Secret acdc3138e8574ade8c9fb7253ae76acf
+
+#encode 	natdurr
+#bcfc853b19be4d86ae2056410e736c33:acdc3138e8574ade8c9fb7253ae76acf
+
+#https://accounts.spotify.com/authorize?client_id=bcfc853b19be4d86ae2056410e736c33&response_type=code&redirect_uri=https%3A%2F%2Flocoaascasc.githubs.io&scope=playlist-modify-public%20playlist-modify-private
+
+#curl -H "Authorization: Basic YmNmYzg1M2IxOWJlNGQ4NmFlMjA1NjQxMGU3MzZjMzM6YWNkYzMxMzhlODU3NGFkZThjOWZiNzI1M2FlNzZhY2Y=" -d grant_type=authorization_code -d code=AQDltDvor0_NtmadbwyBacuQT6kp8hOjWTGIl3udqcBIHKpfv4ocTZXVKwExGWISXQE1fOSxsUJCElqZKQHxaVhQmkxCaW_cforevZHX1ZM135y0LV5USCu9Y8OHsao1PooSRdRCEUO9hcpy3QzGWql1SpuZVnUEuu_FxUaFNRSbincIGvPG9caAokK9oXxvqD55MNJj8oRZS9DO-GQyrPfdLTj8vCHQk552elB94BzcTNw -d redirect_uri=https%3A%2F%2Flocoaascasc.githubs.io https://accounts.spotify.com/api/token
