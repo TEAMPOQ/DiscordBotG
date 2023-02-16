@@ -2,8 +2,9 @@
 #author:    Carlos Rodriguez
 #Date:      November 10, 2022
 #Purpose:   Discord bot that plays music
-
+import asyncio
 import json
+import threading
 import time
 import async_timeout
 import requests
@@ -31,8 +32,11 @@ watch_link = []
 title = ""
 songs = []
 artists = []
-video_length = 0
+video_length = []
 count = 0
+counter = 0
+playlist_total = 0
+msg = ""
 
 
 class SaveSongs:
@@ -40,6 +44,7 @@ class SaveSongs:
         self.user_id = spotify_user_id
         self.spotify_token = " "
         self.playlist_id = playlist_id
+        self.playlist_total = 0
         self.tracks = [" "]
         self.song_to_search = " "
         self.alb_uri = [" ", " ", " ", " "]
@@ -70,25 +75,33 @@ class SaveSongs:
     def search_playlist(self, id):
         global songs
         global artists
+        global playlist_total
 
         # query search
-        query = "https://api.spotify.com/v1/playlists/{}".format(id).replace(" ", "")
+        query = "https://api.spotify.com/v1/playlists/{}?limit=25".format(id).replace(" ", "")
         print(query)
         response = requests.get(query,
                                 headers={"Content-Type": "application/json", "Authorization": "Bearer {}".format(self.spotify_token), "Host": "api.spotify.com"})
 
         response_json = response.json()
-        for x in range(5):
-            #print(response_json["tracks"]["items"][x]["track"]["name"]) # name of song
+        playlist_total = response_json["tracks"]["total"]
+        if playlist_total > 25:
+            playlist_total = 25
+
+        #print(response_json)
+        for x in range(playlist_total):
+            #print(response_json["tracks"]["total"]) # total number of tracks in the playlist
+            #print(response_json["tracks"]["total"]) # total number of tracks in the playlist
             #print(response_json["tracks"]["items"][x]["track"]["album"]["artists"][0]["name"]) # name of artist
             #print(response_json["tracks"]["items"][x]["track"])  # name of artist
 
             songs.append(response_json["tracks"]["items"][x]["track"]["name"])
             artists.append(response_json["tracks"]["items"][x]["track"]["album"]["artists"][0]["name"])
 
-            a.find_songs()
 
-        print(songs, artists)
+            #a.find_songs()
+        print(songs)
+        print(artists)
 
 
 
@@ -120,38 +133,17 @@ class SaveSongs:
         track_name = ["","","","",""]
         artist_name = ["","","","",""]
 
-        txt = []
         response = requests.get(query, headers={"Content-Type": "application/json", "Authorization":"Bearer {}".format(self.spotify_token)})
-
-
-
-        print(response)
 
         response_json = response.json()
 
-        #print(response_json)
-        num = response_json["tracks"]["total"]
-        w = 0
-
-        if response_json["tracks"]["total"] < 5:
+        if response_json["tracks"]["total"] <= 0:                                               # check for zero songs in list
             print("Playlist is to short")
 
-        track_name[0] = response_json["tracks"]["items"][0]["name"]           # song name
-        #track_name[1] = response_json["tracks"]["items"][1]["name"]
-        #track_name[2] = response_json["tracks"]["items"][2]["name"]
-        #track_name[3] = response_json["tracks"]["items"][3]["name"]
-        #track_name[4] = response_json["tracks"]["items"][4]["name"]
+        track_name[0] = response_json["tracks"]["items"][0]["name"]                             # song name
+        artist_name[0] = response_json["tracks"]["items"][0]["album"]["artists"][0]["name"]     # artist Name
 
-        #print(response_json["tracks"]["items"][0])
-
-        artist_name[0] = response_json["tracks"]["items"][0]["album"]["artists"][0]["name"]    # artist Name
-        #artist_name[1] = response_json["tracks"]["items"][1]["track"]["album"]["artists"][0]["name"]
-        #artist_name[2] = response_json["tracks"]["items"][2]["track"]["album"]["artists"][0]["name"]
-        #artist_name[3] = response_json["tracks"]["items"][3]["track"]["album"]["artists"][0]["name"]
-        #artist_name[4] = response_json["tracks"]["items"][4]["track"]["album"]["artists"][0]["name"]
-        #print(artist_name[0], artist_name[1], artist_name[2], artist_name[3], artist_name[4])
         #set the urls
-
         message_play = "https://www.youtube.com/results?search_query={}+by+{}".format(track_name[0].replace(" ", "+"), artist_name[0].replace(" ", "+"))
         #message_play[1] = "https://www.youtube.com/results?search_query={}+by+{}".format(track_name[1].replace(" ", "+"), artist_name[1].replace(" ", "+"))
         #message_play[2] = "https://www.youtube.com/results?search_query={}+by+{}".format(track_name[2].replace(" ", "+"), artist_name[2].replace(" ", "+"))
@@ -167,7 +159,6 @@ class SaveSongs:
                                                 "Authorization":"Bearer {}".format(self.spotify_token)},
                                 )
         response_json = response.json()
-
         print(response_json)
 
 
@@ -188,35 +179,19 @@ async def on_ready():
 
 @client.event
 async def on_message(ctx):
+    global playlist_total
+    global counter
+    global msg
+
     if ctx.author == client.user: # checks to see if the message was sent by a bot
         return
     msg = ctx.content
     channel = ctx.author.voice.channel
-    global counter
-    counter = 0
 
     # Search and play playlist
     if msg.startswith('$playlist'):
-        # search playlist function call with spotify api
-        a.search_playlist(msg[9:32].replace(" ", ""))
-        count = 0
-        for x in range(len(songs)):
-            print(songs[x] + " " + artists[x])
-            # search for song
-            a.search_song(songs[x] + " " + artists[x])
-            print("going into getURL")
-            # generate youtube url
-            await getYoutubeUrls()
-            print("going into download")
-            # download song
-            await download(ctx)
-            count =+ 1
-            print(video_length)
-            # connect bot to channel
-            await connect(ctx)
-            # play song
-            await playlistplay(ctx)
-
+        #msg = ctx.content
+        await playlistplay(ctx)
 
     # play easter egg moe's song
     if msg.startswith('$moe'):
@@ -232,9 +207,13 @@ async def on_message(ctx):
 
     # skip current song
     if msg.startswith('$skip'):
-        schannel = ctx.author.voice.channel
-        svoice = ctx.channel.guild.voice_client
-        player = svoice.stop()
+        voice = ctx.channel.guild.voice_client
+        #voice.stop()
+        #discord.AudioSource.cleanup(ctx)
+        playlist_total -= 1                         # adjust for list total
+        counter += 1                                # adjust for index
+        await playlistplay(ctx)
+
 
     # play a song
     if msg.startswith('$play '):
@@ -255,20 +234,31 @@ async def on_message(ctx):
 
 @client.event
 async def playlistplay(ctx):
-    global play_song
-    channel = ctx.author.voice.channel
-    voice = ctx.channel.guild.voice_client
-    if voice is None:
-        voice = await channel.connect()
-    elif voice.channel != channel:
-        voice.move_to(channel)
-    print('playing song')
-    source = FFmpegPCMAudio("song.mp3")
+    global playlist_total
+    global counter
+    global msg
 
-    if not voice.is_playing():
-        voice.play(source=source)
-    else:
-        playlistplay(ctx)
+    if ctx.author == client.user: # checks to see if the message was sent by a bot
+        return
+    channel = ctx.author.voice.channel
+
+    # search playlist function call with spotify api
+    a.search_playlist(msg[9:32].replace(" ", ""))
+    for counter in range(playlist_total):
+        print(songs[counter] + " " + artists[counter])
+        # search for song
+        a.search_song(songs[counter] + " " + artists[counter])
+        print("going into getURL")
+        # generate youtube url
+        await getYoutubeUrls()
+        # download song
+        await download(ctx)
+        # call play function
+        await play(ctx)
+        # wait for song to finish
+        await asyncio.sleep(video_length[int(counter)][0])
+
+    counter = 0
 
 
 
@@ -289,7 +279,7 @@ async def download(ctx):
         video = YouTube(watch_link).streams.filter(only_audio=True).first()
         video.download(filename='song.mp3')
         #stream = yt.streams.filter(file_extension='mp3')
-        video_length = YouTube(watch_link).length.real.as_integer_ratio()
+        video_length.append(YouTube(watch_link).length.real.as_integer_ratio())
 
     except:
         print("DOWNLOAD UNSUCCESSFUL")
@@ -318,6 +308,7 @@ async def play(ctx):
     elif voice.channel != channel:
         voice.move_to(channel)
     print('try to play song')
+    #voice = await channel.connect()
     source = FFmpegPCMAudio("song.mp3")
     player = voice.play(source)
 
@@ -370,4 +361,4 @@ async def getYoutubeUrls():
 a = SaveSongs()
 a.call_refresh()
 keep_alive()
-client.run("ODk5NTYxMDIyOTI5NjQ5Njg0.YW0jfA.xRMTRBLBY7gGSp_lHFBoEoTr42U")
+client.run("ODk5NTYxMDIyOTI5NjQ5Njg0.GxsuDP.MenQrh_k7SdBT3VndAeCi6JVDLlEeBrIF1jAyg")
