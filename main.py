@@ -3,6 +3,7 @@
 #Date:      November 10, 2022
 #Purpose:   Discord bot that plays music
 import asyncio
+import datetime
 import json
 import threading
 import time
@@ -37,6 +38,7 @@ count = 0
 counter = 0
 playlist_total = 0
 msg = ""
+skip_song = False
 
 
 class SaveSongs:
@@ -182,12 +184,16 @@ async def on_message(ctx):
     global playlist_total
     global counter
     global msg
+    global skip_song
 
     if ctx.author == client.user: # checks to see if the message was sent by a bot
         return
     msg = ctx.content
     channel = ctx.author.voice.channel
 
+    # take command entry from user
+    #
+    #
     # Search and play playlist
     if msg.startswith('$playlist'):
         #msg = ctx.content
@@ -207,12 +213,16 @@ async def on_message(ctx):
 
     # skip current song
     if msg.startswith('$skip'):
-        voice = ctx.channel.guild.voice_client
-        #voice.stop()
-        #discord.AudioSource.cleanup(ctx)
-        playlist_total -= 1                         # adjust for list total
-        counter += 1                                # adjust for index
-        await playlistplay(ctx)
+        try:
+            #await stop(ctx)
+            playlist_total -= 1                         # adjust for list total
+            counter += 1                                # adjust for index
+            await stop(ctx)
+            skip_song = True
+            print(asyncio.get_event_loop())
+
+        except:
+            print("Event loop stopped before Future completed")
 
 
     # play a song
@@ -237,6 +247,7 @@ async def playlistplay(ctx):
     global playlist_total
     global counter
     global msg
+    global skip_song
 
     if ctx.author == client.user: # checks to see if the message was sent by a bot
         return
@@ -244,22 +255,35 @@ async def playlistplay(ctx):
 
     # search playlist function call with spotify api
     a.search_playlist(msg[9:32].replace(" ", ""))
-    for counter in range(playlist_total):
-        print(songs[counter] + " " + artists[counter])
-        # search for song
-        a.search_song(songs[counter] + " " + artists[counter])
-        print("going into getURL")
-        # generate youtube url
-        await getYoutubeUrls()
-        # download song
-        await download(ctx)
-        # call play function
-        await play(ctx)
-        # wait for song to finish
-        await asyncio.sleep(video_length[int(counter)][0])
+    try:
+        for counter in range(playlist_total):
+            print(songs[counter] + " " + artists[counter])
+            # search for song
+            a.search_song(songs[counter] + " " + artists[counter])
+            print("going into getURL")
+            # generate youtube url
+            await getYoutubeUrls()
+            # download song
+            await download(ctx)
+            # call play function
+            await play(ctx)
+            # wait for song to finish
+            test = asyncio.get_running_loop()
+            end = test.time() + video_length[int(counter)][0]
 
+            while True:
+                print(datetime.datetime.now())
+                if (test.time() + 1.0) >= end:
+                    break
+                if skip_song == True:
+                    break
+                await asyncio.sleep(1)
+            #asyncio.sleep(video_length[int(counter)][0])
+            skip_song = False
+    except:
+        ctx.send("Error Playing Playlist")
     counter = 0
-
+    discord.player.VoiceClient.stop(ctx)
 
 
 @client.event
@@ -361,4 +385,4 @@ async def getYoutubeUrls():
 a = SaveSongs()
 a.call_refresh()
 keep_alive()
-client.run("ODk5NTYxMDIyOTI5NjQ5Njg0.GxsuDP.MenQrh_k7SdBT3VndAeCi6JVDLlEeBrIF1jAyg")
+client.run("")
