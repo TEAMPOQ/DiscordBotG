@@ -185,6 +185,7 @@ async def on_message(ctx):
     global counter
     global msg
     global skip_song
+    global video_length
 
     if ctx.author == client.user: # checks to see if the message was sent by a bot
         return
@@ -226,15 +227,19 @@ async def on_message(ctx):
 
 
     # play a song
-    if msg.startswith('$play '):
-        a.search_song(msg[6:28])
-        print("going into getURL")
-        await getYoutubeUrls()
-        print("going into download")
-        print(video_length)
-        await download(ctx)
-        # play song function
-        await play(ctx)
+    if msg.startswith('$play'):
+        try:
+            a.search_song(msg[6:28])
+            print("going into getURL")
+            await getYoutubeUrls()
+            print("going into download")
+            video_length.clear()
+            print(video_length)
+            await download(ctx)
+            # play song function
+            await play(ctx)
+        except:
+            await ctx.send('Error Playing Song!')
 
 
     # connect bot to channel
@@ -281,9 +286,10 @@ async def playlistplay(ctx):
             #asyncio.sleep(video_length[int(counter)][0])
             skip_song = False
     except:
-        ctx.send("Error Playing Playlist")
+        await ctx.send("Error Playing Playlist")
     counter = 0
     discord.player.VoiceClient.stop(ctx)
+    await ctx.send('Playlist Completed!')
 
 
 @client.event
