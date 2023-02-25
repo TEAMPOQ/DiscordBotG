@@ -196,6 +196,7 @@ async def on_message(ctx):
     #
     # Search and play playlist
     if msg.startswith('$playlist'):
+        await reset()                                      # call to reset variable
         #msg = ctx.content
         await playlistplay(ctx)
 
@@ -227,7 +228,7 @@ async def on_message(ctx):
 
     # play a song
     if msg.startswith('$play'):
-
+        await reset()                                      # call to reset variable
         try:
             a.search_song(msg[6:28])
             print("going into getURL")
@@ -389,7 +390,7 @@ async def getYoutubeUrls():
 """
 reset all variables to avoid unwanted errors
 """
-@client.event()
+@client.event
 async def reset():
     global watch_link
     global url
