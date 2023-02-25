@@ -26,7 +26,6 @@ message_play = ""
 intents = discord.Intents.all()
 intents.members = True
 client = discord.Client(intents=intents)
-watch_link = ["", "", "", "", ""]
 url = ["", "", "", "", ""]
 bot = commands.Bot(intents=intents, command_prefix='$')
 watch_link = []
@@ -228,6 +227,7 @@ async def on_message(ctx):
 
     # play a song
     if msg.startswith('$play'):
+
         try:
             a.search_song(msg[6:28])
             print("going into getURL")
@@ -239,7 +239,7 @@ async def on_message(ctx):
             # play song function
             await play(ctx)
         except:
-            await ctx.send('Error Playing Song!')
+            print("error playing song")
 
 
     # connect bot to channel
@@ -286,10 +286,9 @@ async def playlistplay(ctx):
             #asyncio.sleep(video_length[int(counter)][0])
             skip_song = False
     except:
-        await ctx.send("Error Playing Playlist")
+        print("playlist error")
     counter = 0
     discord.player.VoiceClient.stop(ctx)
-    await ctx.send('Playlist Completed!')
 
 
 @client.event
@@ -386,6 +385,35 @@ async def getYoutubeUrls():
 
     watch_link = "https://www.youtube.com/watch?v=" + video_ids[0]
     print(watch_link)
+
+"""
+reset all variables to avoid unwanted errors
+"""
+@client.event()
+async def reset():
+    global watch_link
+    global url
+    global title
+    global songs
+    global artists
+    global video_length
+    global count
+    global counter
+    global playlist_total
+    global msg
+    global skip_song
+    watch_link = ["", "", "", "", ""]
+    url = ["", "", "", "", ""]
+    watch_link = []
+    title = ""
+    songs = []
+    artists = []
+    video_length = []
+    count = 0
+    counter = 0
+    playlist_total = 0
+    msg = ""
+    skip_song = False
 
 
 a = SaveSongs()
