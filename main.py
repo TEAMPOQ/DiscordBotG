@@ -11,8 +11,8 @@ import json
 import os
 import re
 import urllib.request
+import spotipy
 from datetime import date
-
 import discord
 import pytube
 import requests
@@ -20,7 +20,6 @@ from anyascii import anyascii
 from discord import FFmpegPCMAudio
 from discord.ext import commands
 from pytube import YouTube
-
 from keep_alive import keep_alive
 from refresh import Refresh
 from secrets import spotify_user_id, playlist_id
@@ -33,14 +32,17 @@ url = ["", "", "", "", ""]
 bot = commands.Bot(intents=intents, command_prefix='$')
 watch_link = []
 title = ""
+str_msg_list = "PLAYLISTS: "
 songs = []
 artists = []
 video_length = []
+bot_playlist = []
 count = 0
 counter = 0
 playlist_total = 0
 msg = ""
 skip_song = False
+sp = spotipy.Spotify()
 
 
 class SaveSongs:
@@ -53,11 +55,9 @@ class SaveSongs:
         self.song_to_search = " "
         self.alb_uri = [" ", " ", " ", " "]
 
-
     def ask_user(self):
         song_to_search = input("Enter Spotify Playlist ID >> ")
         self.song_to_search = "6Rz9QFcQCvqaILMv7y95W2"#song_to_search
-
 
     def find_songs(self):
         # Loop through playlist tracks, add them to list
@@ -153,7 +153,8 @@ class SaveSongs:
         response_json = response.json()
         print(response_json)
 
-
+    ########## REFRESH SPOTIFY TOKEN ###########
+    ############################################
     def call_refresh(self):
         print("Refreshing token")
 
@@ -161,12 +162,30 @@ class SaveSongs:
 
         self.spotify_token = refreshCaller.refresh()
 
+    def get_playlists(self):
+        global str_msg_list
+        global bot_playlist
+        bot_playlist.clear()
+        str_msg_list = "PLAYLISTS: "
+        list_num = 1
+        sp.set_auth(self.spotify_token)
+        playlist_response = sp.current_user_playlists(limit=25, offset=0)
+
+        while str(playlist_response).find("'name': ") != -1:
+            num = str(playlist_response).find("'name': ")
+            secondHAlf = str(playlist_response)[num:]
+            bot_playlist.append(secondHAlf[9:secondHAlf.find("',")])
+            str_msg_list += '\n' + str(list_num) + '. ' + secondHAlf[9:secondHAlf.find("',")]
+            playlist_response = str(playlist_response)[num+9:]
+            list_num += 1
+
+
 
 
 
 @client.event
 async def on_ready():
-  print('We have logged in as {0.user}'.format(client))
+    print('We have logged in as {0.user}'.format(client))
 
 @client.event
 async def on_message(ctx):
@@ -175,33 +194,38 @@ async def on_message(ctx):
     global msg
     global skip_song
     global video_length
+    global str_msg_list
 
     if ctx.author == client.user: # checks to see if the message was sent by a bot
         return
     msg = ctx.content
     channel = ctx.author.voice.channel
 
-    # take command entry from user
-    #
-    #
-    # Search and play playlist
-    if msg.startswith('$playlist'):
-        await reset()                                      # call to reset variable
+    ############################ USER COMMANDS #############################
+    ########################################################################
+    ########################################################################
+
+    ############ LIST ALL PLAYLIST #############
+    ############################################
+    if msg.startswith('$p list'):
+        a.get_playlists()
+        await sendMsg(ctx, str_msg_list)
+
+    ########### CREATE A  PLAYLIST #############
+    ############################################
+    if msg.startswith('$p create'):
+        await create_playlist(ctx, msg[10:])                #send command to create a new playlist
+
+
+    ############# PLAY A  PLAYLIST #############
+    ############################################
+    if msg.startswith('$p play'):
         await playlistplay(ctx)
+        await reset()                                          # call to reset variable
 
-    # play easter egg moe's song
-    if msg.startswith('$moe'):
-        mchannel = ctx.author.voice.channel
-        mvoice = ctx.channel.guild.voice_client
-        if mvoice is None:
-            mvoice = await mchannel.connect()
-        elif mvoice.channel != channel:
-            mvoice.move_to(channel)
-        print('try to play song')
-        source = FFmpegPCMAudio('moe.mp3')
-        player = mvoice.play(source)
 
-    # skip current song
+    ################ SKIP SONG ################
+    ###########################################
     if msg.startswith('$skip'):
         try:
             #await stop(ctx)
@@ -214,32 +238,47 @@ async def on_message(ctx):
         except:
             print("Event loop stopped before Future completed")
 
-
-    # play a song
+    ################ PLAY A SONG ##############
+    ###########################################
     if msg.startswith('$play'):
-        song_searching = msg[6:]
-        a.search_song(msg[6:28])
-        await getYoutubeUrls()
-        video_length.clear()
         try:
-            await download(ctx)
-            # play song function
             await play(ctx)
         except:
-            print("error playing/downloading song")
-            
+            print("error playing song")
+
         await reset()  # call to reset variable
 
-    # spam a user @
+    ################ SPAM A USER ##############
+    ###########################################
     if msg.startswith('$spam'):
         #try:
         username_spam = msg[6:]     # username were going to spam
         await spamUser(ctx, username_spam)
 
-    # connect bot to channel
+    ################ CONNECT BOT TO CHANNEL #############
+    #####################################################
     if msg.startswith('$connect'):
         await connect(ctx)
 
+
+############################ BOT FUNCTIONS #############################
+########################################################################
+########################################################################
+
+async def sendMsg(ctx, str_msg):
+    music_channel = client.get_channel(965814271063781396)
+    await music_channel.send(str_msg)
+
+
+async def create_playlist(ctx, name):
+    sp.set_auth(a.spotify_token)
+    response = requests.get('https://api.spotify.com/v1/users/{}/playlists?name={}'.format(sp.set_auth(a.spotify_token),name))
+    print(response)
+    #sp.user_playlist_create(spotify_user_id, name, public=True, collaborative=False, description='')
+
+
+################ SPAM USER FUNCTION #############
+#################################################
 @client.event
 async def spamUser(ctx, username):
     channel = ctx.author.voice.channel
@@ -248,10 +287,12 @@ async def spamUser(ctx, username):
 
     mentions = discord.AllowedMentions(everyone=True, users=True, roles=True, replied_user=True)
     for x in range(1000):
-        await asyncio.sleep(1.5)
+        await asyncio.sleep(2)
         await channel.send(username, allowed_mentions=mentions)
         x += 1
 
+################ PLAY PLAYLIST FUNCTION #############
+#####################################################
 @client.event
 async def playlistplay(ctx):
     global playlist_total
@@ -286,25 +327,45 @@ async def playlistplay(ctx):
     discord.player.VoiceClient.stop(ctx)                                # force stop voice client
 
 
-
+################ DOWNLOAD SONG FUNCTION #############
+#####################################################
 @client.event
 async def download(ctx):
     global watch_link
     global title
     global video_length
     global count
+
+    music_channel = client.get_channel(965814271063781396)
     channel = ctx.author.voice.channel
     voice = ctx.author.voice
+    song_name = ''
+    out_file = None
 
-    yt = YouTube(watch_link)                                            # url input from user
-    video = yt.streams.filter(only_audio=True).first()                  # extract only audio
-    out_file = video.download()                                         # download the file
-    new_file = 'song.mp3'                                               # save the file
-    print(yt.title + " has been successfully downloaded.")              # result of success
+    print('1')
+    yt = YouTube(str(watch_link))                                       # url input from user
+
+    print('2')
+    try:
+        out_file = yt.streams.get_audio_only().download()               # download the file
+    except:
+        pass
+    print('3.5')
+
+    song_name = os.path.basename(out_file)[:os.path.basename(out_file).find(".mp4")]
+
+    print('3')
+    if os.path.exists('song.mp3'):                                      # if song.mp3 already exists delete
+        os.remove('song.mp3')
+    print('4')
+    os.rename(out_file, 'song.mp3')                                     # rename song file
+    print('5')
+    await music_channel.send(song_name + " will begin shortly!") # send in discord chat
+    print(os.path.basename(out_file) + " has been successfully downloaded.")              # result of success
 
 
-
-# connect bot function
+################ CONNECT BOT TO CHANNEL #############
+#####################################################
 async def connect(ctx):
     voice = ctx.author.voice
     channel = ctx.author.voice.channel
@@ -316,22 +377,38 @@ async def connect(ctx):
     print("connected{0.user}".format(client))
 
 
+################ PLAY SONG FUNCTION #################
+#####################################################
 @client.event
 async def play(ctx):
     channel = ctx.author.voice.channel
     voice = ctx.channel.guild.voice_client
 
-    if voice is None:
-        voice = await channel.connect()
-    elif voice.channel != channel:
-        voice.move_to(channel)
+    a.search_song(msg[6:28])
+    await getYoutubeUrls()
+    video_length.clear()
+    try:
+        await download(ctx)
+        # play song function
+    except:
+        print('error with download')
+    try:
+        if voice is None:
+            voice = await channel.connect()
+        elif voice.channel != channel:
+            voice.move_to(channel)
 
-    source = FFmpegPCMAudio("song.mp3")
-    player = voice.play(source)
-    #voice.play(FFmpegPCMAudio("song.mp3"))
+        source = FFmpegPCMAudio("song.mp3")
+        player = voice.play(source)
+    except:
+        print("error playing song")
 
 
 
+
+
+############### DISCONNECT BOT FUNCTION #############
+#####################################################
 @client.event
 async def leave(ctx):
     voice = discord.utils.get(client.voice_clients, guild=ctx.guild)
@@ -341,6 +418,8 @@ async def leave(ctx):
         await ctx.send("The bot is not connected to a voice channel.")
 
 
+################ PAUSE SONG FUNCTION ################
+#####################################################
 @client.event
 async def pause(ctx):
     voice = discord.utils.get(client.voice_clients, guild=ctx.guild)
@@ -349,6 +428,9 @@ async def pause(ctx):
     else:
         await ctx.send("Currently no audio is playing.")
 
+
+################ RESUME SONG FUNCTION ###############
+#####################################################
 @client.event
 async def resume(ctx):
     voice = discord.utils.get(client.voice_clients, guild=ctx.guild)
@@ -357,11 +439,15 @@ async def resume(ctx):
     else:
         await ctx.send("The audio is not paused.")
 
+################# STOP SONG FUNCTION ################
+#####################################################
 @client.event
 async def stop(ctx):
     voice = discord.utils.get(client.voice_clients, guild=ctx.guild)
     voice.stop()
 
+############# GET URL FOR SONG FUNCTION #############
+#####################################################
 @client.event
 async def getYoutubeUrls():
     global message_play
@@ -376,9 +462,8 @@ async def getYoutubeUrls():
     watch_link = "https://www.youtube.com/watch?v=" + video_ids[0]
     print(watch_link)
 
-"""
-reset all variables to avoid unwanted errors
-"""
+############# RESET VARIABLES FUNCTION ##############
+#####################################################
 @client.event
 async def reset():
     global watch_link
