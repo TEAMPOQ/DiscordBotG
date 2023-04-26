@@ -5,6 +5,7 @@
 #            uses spotify api to search song names can also search spotify playlists
 #            uses pytube to stream/download songs found
 
+
 import asyncio
 import datetime
 import json
@@ -36,7 +37,7 @@ title = ""
 str_msg_list = "PLAYLISTS: "
 songs = []
 artists = []
-video_length = []
+video_length = 0
 bot_playlist = []
 count = 0
 counter = 0
@@ -80,38 +81,55 @@ class SaveSongs:
         bot_playlist.clear()
         str_msg_list = "PLAYLISTS: "
         list_num = 1
-        sp.set_auth(self.spotify_token)
-        playlist_response = sp.current_user_playlists(limit=25, offset=0)
+        spotifyObject.set_auth(self.spotify_token)
+        playlist_res = spotifyObject.current_user_playlists(limit=25, offset=0)
 
-        while str(playlist_response).find("'name': ") != -1:
-            num = str(playlist_response).find("'name': ")
-            secondHAlf = str(playlist_response)[num:]
+        while str(playlist_res).find("'name': ") != -1:
+            num = str(playlist_res).find("'name': ")
+            secondHAlf = str(playlist_res)[num:]
             bot_playlist.append(secondHAlf[9:secondHAlf.find("',")])
             str_msg_list += '\n' + str(list_num) + '. ' + secondHAlf[9:secondHAlf.find("',")]
-            playlist_response = str(playlist_response)[num+9:]
+            playlist_res = str(playlist_res)[num+9:]
             list_num += 1
 
     ############ GET PLAYLIST SONGS ############
     ############################################
     def get_playlists_songs(self):
-        global str_msg_list, playlist_response, bot_playlist, playlist_ID
-        song_list = []
+        global str_msg_list, playlist_response, bot_playlist, playlist_ID, songs, artists
+
         str_msg_list = "SONGS: "
         list_num = 0
-        sp.set_auth(self.spotify_token)
-        playlist_songs = spotifyObject.playlist_items(playlist_ID, limit=25, offset=0, market=None)
+        #spotifyObject.set_auth(self.spotify_token)
+        playlist_songs  = spotifyObject.playlist_items(playlist_id=playlist_ID, limit=25, offset=0, market=None)
+        num_tracks      = spotifyObject.playlist_items(playlist_id=playlist_ID, limit=25, offset=0, market=None, fields='total')
+        song_names      = spotifyObject.playlist_items(playlist_id=playlist_ID, limit=25, offset=0, market=None, fields="items(track(name))")
+        artists_names   = spotifyObject.playlist_items(playlist_id=playlist_ID, limit=25, offset=0, market=None, fields="items(track(artists(name)))")
+        temp_str_songs = str(song_names)
+        temp_str_artists = str(artists_names)
 
-        num_tracks = spotifyObject.playlist_items(playlist_ID, limit=25, offset=0, market=None, fields='total')
         trackss = str(num_tracks)[10: -1]
         #print(playlist_songs)
         for x in range(int(trackss)):
             print(playlist_songs['items'][int(list_num)]['track']['name'])
             str_msg_list += str(int(x+1)) + ". " + playlist_songs['items'][int(list_num)]['track']['name'] + " | "
+            # save song names
+            temp_str_songs = temp_str_songs[temp_str_songs.find("'name': '")+9:]
+            songs.append(temp_str_songs[:temp_str_songs.find("'")])
+            # save artists names
+            temp_str_artists = temp_str_artists[temp_str_artists.find("'name': '") + 9:]
+            artists.append(temp_str_artists[:temp_str_artists.find("'")])
+
+
             list_num += 1
+
+
+        #print(songs)
+        print(songs)
+        print(artists)
 
     ############# SEARCH PLAYLIST ##############
     ############################################
-    def search_playlist(self, id):
+    def search_playlist(self):
         global songs
         global artists
         global playlist_total
@@ -142,7 +160,6 @@ class SaveSongs:
         #sp.set_auth(access_token)
         spotifyObject.user_playlist_create(user=str(SPOTIFY_USERNAME), name=str(name), public=True, collaborative=False, description=todayFormatted)
 
-
     ############# Select Playlist ##############
     ############################################
     def select_playlist(self, name):
@@ -164,7 +181,6 @@ class SaveSongs:
         a.search_song(name)
         print(track_id)
         spotifyObject.playlist_add_items(playlist_id=playlist_ID, items=[track_id], position=0)
-
 
     ############### SEARCH SONG ################
     ############################################
@@ -196,9 +212,7 @@ class SaveSongs:
     ############################################
     def call_refresh(self):
         print("Refreshing token")
-
         refreshCaller = Refresh()
-
         self.spotify_token = refreshCaller.refresh()
 
 
@@ -279,7 +293,7 @@ async def on_message(ctx):
     ###########################################
     if msg.startswith('$play'):
         try:
-            await play(ctx)
+            await play(ctx, msg[6:])
         except:
             print("error playing song")
 
@@ -334,36 +348,29 @@ async def playlistplay(ctx):
     global msg
     global skip_song
     global video_length
+    global songs
+    global artists
+
+    counter = 0
 
     if ctx.author == client.user:                                       # checks to see if the message was sent by a bot
         return
-    channel = ctx.author.voice.channel
-    voice = ctx.channel.guild.voice_client
-    video_length.clear()
-    # search playlist function call with spotify api
-    a.search_playlist(msg[9:32].replace(" ", ""))
-    for counter in range(playlist_total):
-        a.search_song(songs[counter] + " " + artists[counter])      # search for song
 
-        await getYoutubeUrls()                                      # generate youtube url
+    # search playlist function call with spotify api
+    a.get_playlists_songs()
+
+    for x in songs:
         try:
-            await download(ctx)
+            temp = str(songs[int(counter)] + " " + artists[int(counter)])
+            print(str(songs[int(counter)] + " " + artists[int(counter)]))
+            await play(ctx, temp)
             # play song function
         except:
-            print('error with download')
-        try:
-            if voice is None:
-                voice = await channel.connect()
-            elif voice.channel != channel:
-                voice.move_to(channel)
-
-            source = FFmpegPCMAudio("song.mp3")
-            player = voice.play(source)
-        except:
-            print("error playing song")
+            print('error with play')
 
         test = asyncio.get_running_loop()                           # wait for song to finish
         end = test.time() + video_length                            # calculate the end of the current song
+        counter += 1
 
         while True:                                                 # while song is playing do
             print(datetime.datetime.now())                          # print time stamp
@@ -373,7 +380,6 @@ async def playlistplay(ctx):
             await asyncio.sleep(1)                                  # timeout
 
         print("playlist error")                                         # catch any execution errors with playlist
-    counter = 0                                                         # reset counter
     discord.player.VoiceClient.stop(ctx)                                # force stop voice client
 
 
@@ -392,26 +398,26 @@ async def download(ctx):
     song_name = ''
     out_file = None
 
-    print('1')
+    #print('1')                                                          # debug purposes
     yt = YouTube(str(watch_link))                                       # url input from user
 
-    print('2')
+    #print('2')
     try:
         out_file = yt.streams.get_audio_only().download()               # download the file
     except:
         pass
-    print('3.5')
+    #print('3.5')
 
     song_name = os.path.basename(out_file)[:os.path.basename(out_file).find(".mp4")]
 
-    print('3')
+    #print('3')
     if os.path.exists('song.mp3'):                                      # if song.mp3 already exists delete
         os.remove('song.mp3')
-    print('4')
+    #print('4')
     os.rename(out_file, 'song.mp3')                                     # rename song file
-    print('5')
+    #print('5')
     await music_channel.send(song_name + " will begin shortly!") # send in discord chat
-    print(os.path.basename(out_file) + " has been successfully downloaded.")              # result of success
+    #print(os.path.basename(out_file) + " has been successfully downloaded.")              # result of success
 
 
 ################ CONNECT BOT TO CHANNEL #############
@@ -430,14 +436,17 @@ async def connect(ctx):
 ################ PLAY SONG FUNCTION #################
 #####################################################
 @client.event
-async def play(ctx):
+async def play(ctx, song):
     channel = ctx.author.voice.channel
     voice = ctx.channel.guild.voice_client
-
-    a.search_song(msg[6:28])
+    print('1')                                 # debug purposes
+    a.search_song(song)
+    print('2')
     await getYoutubeUrls()
-    video_length.clear()
+    print('3')
+    print('4')
     try:
+        print('5')
         await download(ctx)
         # play song function
     except:
@@ -452,9 +461,6 @@ async def play(ctx):
         player = voice.play(source)
     except:
         print("error playing song")
-
-
-
 
 
 ############### DISCONNECT BOT FUNCTION #############
@@ -491,10 +497,19 @@ async def resume(ctx):
 
 ################# STOP SONG FUNCTION ################
 #####################################################
-@client.event
-async def stop(ctx):
-    voice = discord.utils.get(client.voice_clients, guild=ctx.guild)
-    voice.stop()
+
+
+
+################ GET VIDEO DURATION #################
+#####################################################
+async def GetDuration():
+    global watch_link, video_length
+    info = requests.get(watch_link)
+    info = info.text
+    info = info[info.find('approxDurationMs":"')+19:]
+    info = info[:info.find('"')]
+    video_length = (int(info)/1000)
+    print(video_length)
 
 ############# GET URL FOR SONG FUNCTION #############
 #####################################################
@@ -505,14 +520,18 @@ async def getYoutubeUrls():
     global video_length
     video_ids = []
 
-    #html = urllib.request.urlopen(message_play)
+    print('1y')
     html = urllib.request.urlopen(anyascii(message_play))
+    print('2y')
     response = html.read()
+    print('3y')
     video_ids = re.findall(r"watch\?v=(\S{11})", str(response))
-
+    print('4y')
     watch_link = "https://www.youtube.com/watch?v=" + video_ids[0]
+    print('5y')
     vid = pytube.YouTube(watch_link)
-    video_length = vid.length
+    print('6y')
+    await GetDuration()
     print(watch_link)
 
 ############# RESET VARIABLES FUNCTION ##############
@@ -524,7 +543,6 @@ async def reset():
     global title
     global songs
     global artists
-    global video_length
     global count
     global counter
     global playlist_total
@@ -536,7 +554,6 @@ async def reset():
     title = ""
     songs = []
     artists = []
-    video_length = []
     count = 0
     counter = 0
     playlist_total = 0
