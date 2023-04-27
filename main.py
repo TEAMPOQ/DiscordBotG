@@ -311,12 +311,30 @@ async def on_message(ctx):
     if msg.startswith('$connect'):
         await connect(ctx)
 
+    if msg.startswith('$help'):
+        await help(ctx)
+
 
 ############################ BOT FUNCTIONS #############################
 ########################################################################
 ########################################################################
 
 
+
+############# LIST ALL FUNCTIONS    #############
+#################################################
+async def help(ctx):
+    music_channel = client.get_channel(965814271063781396)
+    await music_channel.send('$p add [song name] - adds a song top playlist'
+                             '\n$connect - connects bot to channel'
+                             '\n$p create [name] - creates a playlist'
+                             '\n$p list - will list all playlists'
+                             '\n$play [song name] - will play a song'
+                             '\n$p play - plays a playlist(must select a playlist)'
+                             '\n$p select [name of playlist] - selects a playlist'
+                             '\n$skip - skips a song'
+                             '\n$spam [@user] - spams @\'s a user'
+                             '\n$p songs - lists all songs in selected playlist')
 
 ############### SEND A MSG FUNCTION #############
 #################################################
