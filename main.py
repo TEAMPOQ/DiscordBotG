@@ -8,6 +8,7 @@
 
 import asyncio
 import datetime
+import youtube_dl
 import json
 import os
 import re
@@ -43,6 +44,7 @@ count = 0
 counter = 0
 playlist_total = 0
 msg = ""
+song_name = ""
 skip_song = False
 playlist_response = ''
 SPOTIFY_USERNAME='31nqczrdhhi2y4o2pnyv53ihfncq'
@@ -53,7 +55,6 @@ SPOTIPY_REDIRECT_URI='https://github.com/TEAMPOQ/DiscordBotG'
 playlist_ID = ''
 track_id = ''
 
-sp = spotipy.Spotify(auth=access_token)
 scope = 'playlist-modify-public'
 
 token = spotipy.SpotifyOAuth(client_id=SPOTIPY_CLIENT_ID, client_secret=SPOTIPY_CLIENT_SECRET, redirect_uri=SPOTIPY_REDIRECT_URI, scope=scope, username=SPOTIFY_USERNAME)
@@ -109,18 +110,21 @@ class SaveSongs:
 
         trackss = str(num_tracks)[10: -1]
         #print(playlist_songs)
-        for x in range(int(trackss)):
-            print(playlist_songs['items'][int(list_num)]['track']['name'])
-            str_msg_list += str(int(x+1)) + ". " + playlist_songs['items'][int(list_num)]['track']['name'] + " | "
-            # save song names
-            temp_str_songs = temp_str_songs[temp_str_songs.find("'name': '")+9:]
-            songs.append(temp_str_songs[:temp_str_songs.find("'")])
-            # save artists names
-            temp_str_artists = temp_str_artists[temp_str_artists.find("'name': '") + 9:]
-            artists.append(temp_str_artists[:temp_str_artists.find("'")])
+        for x in range(int(trackss)-1):
+            try:
+                print(playlist_songs['items'][int(list_num)]['track']['name'])
+                str_msg_list += str(int(x+1)) + ". " + playlist_songs['items'][int(list_num)]['track']['name'] + " | "
+                # save song names
+                temp_str_songs = temp_str_songs[temp_str_songs.find("'name': '")+9:]
+                songs.append(temp_str_songs[:temp_str_songs.find("'")])
+                # save artists names
+                temp_str_artists = temp_str_artists[temp_str_artists.find("'name': '") + 9:]
+                artists.append(temp_str_artists[:temp_str_artists.find("'")])
 
 
-            list_num += 1
+                list_num += 1
+            except:
+                pass
 
 
         #print(songs)
@@ -405,35 +409,36 @@ async def playlistplay(ctx):
 #####################################################
 @client.event
 async def download(ctx):
-    global watch_link
-    global title
-    global video_length
-    global count
+    global watch_link, title, video_length, count, song_name
 
     music_channel = client.get_channel(965814271063781396)
     channel = ctx.author.voice.channel
     voice = ctx.author.voice
-    song_name = ''
     out_file = None
 
-    #print('1')                                                          # debug purposes
+    print('1')                                                          # debug purposes
     yt = YouTube(str(watch_link))                                       # url input from user
 
-    #print('2')
+    print('2')
     try:
-        out_file = yt.streams.get_audio_only().download()               # download the file
+        # get the audio stream
+        audio = yt.streams.get_audio_only()
+        print(audio)
+        # download the audio stream to a file
+        audio.download(output_path='./', filename='song.mp3')
+        #out_file = yt.streams.get_audio_only(subtype='mp4').download(filename='song.mp3')               # download the file pytube
     except:
         pass
-    #print('3.5')
+    print('3.5')
 
-    song_name = os.path.basename(out_file)[:os.path.basename(out_file).find(".mp4")]
-
-    #print('3')
-    if os.path.exists('song.mp3'):                                      # if song.mp3 already exists delete
-        os.remove('song.mp3')
-    #print('4')
-    os.rename(out_file, 'song.mp3')                                     # rename song file
-    #print('5')
+    #song_name = os.path.basename(out_file)[:os.path.basename(out_file).find(".mp4")]
+    #print(song_name)
+    print('3')
+    #if os.path.exists('song.mp3'):                                      # if song.mp3 already exists delete
+    #    os.remove('song.mp3')
+    print('4')
+    #os.rename(out_file, 'song.mp3')                                     # rename song file
+    print('5')
     await music_channel.send(song_name + " will begin shortly!") # send in discord chat
     #print(os.path.basename(out_file) + " has been successfully downloaded.")              # result of success
 
@@ -515,7 +520,9 @@ async def resume(ctx):
 
 ################# STOP SONG FUNCTION ################
 #####################################################
-
+async def stop(ctx):
+    voice = discord.utils.get(client.voice_clients, guild=ctx.guild)
+    voice.stop()
 
 
 ################ GET VIDEO DURATION #################
@@ -536,6 +543,7 @@ async def getYoutubeUrls():
     global message_play
     global watch_link
     global video_length
+    global song_name
     video_ids = []
 
     print('1y')
@@ -548,6 +556,8 @@ async def getYoutubeUrls():
     watch_link = "https://www.youtube.com/watch?v=" + video_ids[0]
     print('5y')
     vid = pytube.YouTube(watch_link)
+    song_name = vid.title
+
     print('6y')
     await GetDuration()
     print(watch_link)
