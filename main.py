@@ -47,9 +47,9 @@ msg = ""
 song_name = ""
 skip_song = False
 playlist_response = ''
-SPOTIFY_USERNAME='31nqczrdhhi2y4o2pnyv53ihfncq'
-SPOTIPY_CLIENT_ID='3c7d7773da494e2db73293f7361348b3'
-SPOTIPY_CLIENT_SECRET='3b72a8bf993642869c4caf9b6af3fb11'
+SPOTIFY_USERNAME=''
+SPOTIPY_CLIENT_ID=''
+SPOTIPY_CLIENT_SECRET=''
 SPOTIPY_REDIRECT_URI='https://github.com/TEAMPOQ/DiscordBotG'
 
 playlist_ID = ''
