@@ -47,9 +47,9 @@ msg = ""
 song_name = ""
 skip_song = False
 playlist_response = ''
-SPOTIFY_USERNAME=''
-SPOTIPY_CLIENT_ID=''
-SPOTIPY_CLIENT_SECRET=''
+SPOTIFY_USERNAME='31nqczrdhhi2y4o2pnyv53ihfncq'
+SPOTIPY_CLIENT_ID='3c7d7773da494e2db73293f7361348b3'
+SPOTIPY_CLIENT_SECRET='3b72a8bf993642869c4caf9b6af3fb11'
 SPOTIPY_REDIRECT_URI='https://github.com/TEAMPOQ/DiscordBotG'
 
 playlist_ID = ''
@@ -84,11 +84,12 @@ class SaveSongs:
         list_num = 1
         spotifyObject.set_auth(self.spotify_token)
         playlist_res = spotifyObject.current_user_playlists(limit=25, offset=0)
-
+        print(playlist_res)
         while str(playlist_res).find("'name': ") != -1:
             num = str(playlist_res).find("'name': ")
             secondHAlf = str(playlist_res)[num:]
             bot_playlist.append(secondHAlf[9:secondHAlf.find("',")])
+
             str_msg_list += '\n' + str(list_num) + '. ' + secondHAlf[9:secondHAlf.find("',")]
             playlist_res = str(playlist_res)[num+9:]
             list_num += 1
@@ -104,13 +105,16 @@ class SaveSongs:
         playlist_songs  = spotifyObject.playlist_items(playlist_id=playlist_ID, limit=25, offset=0, market=None)
         num_tracks      = spotifyObject.playlist_items(playlist_id=playlist_ID, limit=25, offset=0, market=None, fields='total')
         song_names      = spotifyObject.playlist_items(playlist_id=playlist_ID, limit=25, offset=0, market=None, fields="items(track(name))")
-        artists_names   = spotifyObject.playlist_items(playlist_id=playlist_ID, limit=25, offset=0, market=None, fields="items(track(artists(name)))")
+        #artists_names   = spotifyObject.playlist_items(playlist_id=playlist_ID, limit=25, offset=0, market=None, fields="items(track(artists(name)))")
         temp_str_songs = str(song_names)
-        temp_str_artists = str(artists_names)
-
+        #temp_str_artists = str(artists_names)
+        append_str = ""
         trackss = str(num_tracks)[10: -1]
         #print(playlist_songs)
         for x in range(int(trackss)-1):
+            artists_names = spotifyObject.playlist_items(playlist_id=playlist_ID, limit=1, offset=int(x),
+                                                         market=None, fields="items(track(artists(name)))")
+            temp_str_artists = str(artists_names)
             try:
                 print(playlist_songs['items'][int(list_num)]['track']['name'])
                 str_msg_list += str(int(x+1)) + ". " + playlist_songs['items'][int(list_num)]['track']['name'] + " | "
@@ -118,10 +122,18 @@ class SaveSongs:
                 temp_str_songs = temp_str_songs[temp_str_songs.find("'name': '")+9:]
                 songs.append(temp_str_songs[:temp_str_songs.find("'")])
                 # save artists names
+                print(temp_str_artists)
                 temp_str_artists = temp_str_artists[temp_str_artists.find("'name': '") + 9:]
-                artists.append(temp_str_artists[:temp_str_artists.find("'")])
+                print(temp_str_artists)
+                while True:
+                    append_str += temp_str_artists[0:temp_str_artists.find("'")] + " "              # string with all artists in a song
+                    if temp_str_artists.find("'name': '") == -1:                                    # break condition
+                        break
+                    temp_str_artists = temp_str_artists[temp_str_artists.find("'name': '") + 9:]    # updating value
 
-
+                print("song #"+str(int(x)) + " " + append_str)                                      # debugging purpose
+                artists.append(append_str)                                                          # append artists
+                append_str = ""                                                                     # clear temp string
                 list_num += 1
             except:
                 pass
@@ -170,12 +182,14 @@ class SaveSongs:
         global bot_playlist
         global playlist_ID
         a.get_playlists()                                                                                           # INITIALIZE bot_playlist
+        print(bot_playlist)
         index = 0                                                                                                   # KEEP TRACK OF PLAYLIST INDEX
+        print(name)
         for x in bot_playlist:
             if str(x).find(str(name)) != -1:                                                                        # FIND IF PLAYLIST EXISTS
                 break
             index += 1
-        playlist_ID = spotifyObject.user_playlists(user=SPOTIFY_USERNAME, offset=0)['items'][index]['id']       # GRAB PLAYLIST ID
+        playlist_ID = spotifyObject.user_playlists(user=SPOTIFY_USERNAME, offset=0)['items'][index]['id']           # GRAB PLAYLIST ID
 
     ############# ADD TO PLAYLIST ##############
     ############################################
@@ -189,9 +203,7 @@ class SaveSongs:
     ############### SEARCH SONG ################
     ############################################
     def search_song(self,msg):
-        global message_play
-        global track_name
-        global track_id
+        global message_play, track_name, track_id, artists, songs
 
         self.song_to_search = msg  # song_to_search
         query = "http://api.spotify.com/v1/search/?type=track&q={}&include_external=audio&limit=4&market=US&limit=1".format(self.song_to_search)
@@ -210,7 +222,8 @@ class SaveSongs:
         artist_name[0] = response_json["tracks"]["items"][0]["album"]["artists"][0]["name"]     # artist Name
 
         #set the urls
-        message_play = "https://www.youtube.com/results?search_query={}+by+{}".format(track_name[0].replace(" ", "+"), artist_name[0].replace(" ", "+"))
+        message_play = "https://www.youtube.com/results?search_query={}".format(msg.replace(" ", "+").replace("&", "and"))
+        print(message_play)
 
     ########## REFRESH SPOTIFY TOKEN ###########
     ############################################
@@ -384,7 +397,7 @@ async def playlistplay(ctx):
     for x in songs:
         try:
             temp = str(songs[int(counter)] + " " + artists[int(counter)])
-            print(str(songs[int(counter)] + " " + artists[int(counter)]))
+            print(temp)
             await play(ctx, temp)
             # play song function
         except:
@@ -426,21 +439,10 @@ async def download(ctx):
         print(audio)
         # download the audio stream to a file
         audio.download(output_path='./', filename='song.mp3')
-        #out_file = yt.streams.get_audio_only(subtype='mp4').download(filename='song.mp3')               # download the file pytube
     except:
         pass
-    print('3.5')
-
-    #song_name = os.path.basename(out_file)[:os.path.basename(out_file).find(".mp4")]
-    #print(song_name)
-    print('3')
-    #if os.path.exists('song.mp3'):                                      # if song.mp3 already exists delete
-    #    os.remove('song.mp3')
-    print('4')
-    #os.rename(out_file, 'song.mp3')                                     # rename song file
-    print('5')
     await music_channel.send(song_name + " will begin shortly!") # send in discord chat
-    #print(os.path.basename(out_file) + " has been successfully downloaded.")              # result of success
+
 
 
 ################ CONNECT BOT TO CHANNEL #############
