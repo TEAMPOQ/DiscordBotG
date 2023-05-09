@@ -175,7 +175,7 @@ class SaveSongs:
             if str(x).find(str(name)) != -1:                                                                        # FIND IF PLAYLIST EXISTS
                 break
             index += 1
-        playlist_ID = spotifyObject.user_playlists(user=SPOTIFY_USERNAME, offset=index)['items'][index]['id']       # GRAB PLAYLIST ID
+        playlist_ID = spotifyObject.user_playlists(user=SPOTIFY_USERNAME, offset=0)['items'][index]['id']       # GRAB PLAYLIST ID
 
     ############# ADD TO PLAYLIST ##############
     ############################################
