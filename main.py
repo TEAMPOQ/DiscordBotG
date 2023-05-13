@@ -8,6 +8,8 @@
 
 import asyncio
 import datetime
+import sys
+import time
 import youtube_dl
 import json
 import os
@@ -51,14 +53,15 @@ SPOTIFY_USERNAME='31nqczrdhhi2y4o2pnyv53ihfncq'
 SPOTIPY_CLIENT_ID='3c7d7773da494e2db73293f7361348b3'
 SPOTIPY_CLIENT_SECRET='3b72a8bf993642869c4caf9b6af3fb11'
 SPOTIPY_REDIRECT_URI='https://github.com/TEAMPOQ/DiscordBotG'
-
+restart_time = (time.time() + 3300)                # used as a timer to restart script
 playlist_ID = ''
 track_id = ''
 
 scope = 'playlist-modify-public'
 
-token = spotipy.SpotifyOAuth(client_id=SPOTIPY_CLIENT_ID, client_secret=SPOTIPY_CLIENT_SECRET, redirect_uri=SPOTIPY_REDIRECT_URI, scope=scope, username=SPOTIFY_USERNAME)
+token = spotipy.SpotifyOAuth(client_id=SPOTIPY_CLIENT_ID, client_secret=SPOTIPY_CLIENT_SECRET, redirect_uri=SPOTIPY_REDIRECT_URI ,scope=scope, username=SPOTIFY_USERNAME)
 spotifyObject = spotipy.Spotify(auth_manager=token)
+
 
 class SaveSongs:
     def _init_(self):
@@ -69,6 +72,7 @@ class SaveSongs:
         self.tracks = [" "]
         self.song_to_search = " "
         self.alb_uri = [" ", " ", " ", " "]
+
 
     def ask_user(self):
         song_to_search = input("Enter Spotify Playlist ID >> ")
@@ -93,6 +97,7 @@ class SaveSongs:
             str_msg_list += '\n' + str(list_num) + '. ' + secondHAlf[9:secondHAlf.find("',")]
             playlist_res = str(playlist_res)[num+9:]
             list_num += 1
+
 
     ############ GET PLAYLIST SONGS ############
     ############################################
@@ -237,14 +242,10 @@ class SaveSongs:
 async def on_ready():
     print('We have logged in as {0.user}'.format(client))
 
+
 @client.event
 async def on_message(ctx):
-    global playlist_total
-    global counter
-    global msg
-    global skip_song
-    global video_length
-    global str_msg_list
+    global playlist_total, counter, msg, skip_song, video_length, str_msg_list, restart_time
 
     if ctx.author == client.user: # checks to see if the message was sent by a bot
         return
@@ -288,8 +289,13 @@ async def on_message(ctx):
     ############# PLAY A  PLAYLIST #############
     ############################################
     if msg.startswith('$p play'):
+        # ensures a new token
+        if int(time.time()) > int(restart_time):
+            python = sys.executable
+            os.execl(python, os.path.abspath('main.py'), *sys.argv)
         await playlistplay(ctx)
         await reset()                                          # call to reset variable
+
 
 
     ################ SKIP SONG ################
