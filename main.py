@@ -245,7 +245,7 @@ async def on_ready():
 
 @client.event
 async def on_message(ctx):
-    global playlist_total, counter, msg, skip_song, video_length, str_msg_list, restart_time
+    global playlist_total, counter, msg, skip_song, video_length, str_msg_list, restart_time, songs, artists
 
     if ctx.author == client.user: # checks to see if the message was sent by a bot
         return
@@ -289,12 +289,14 @@ async def on_message(ctx):
     ############# PLAY A  PLAYLIST #############
     ############################################
     if msg.startswith('$p play'):
+        songs.clear()
+        artists.clear()
+
         # ensures a new token
         if int(time.time()) > int(restart_time):
             python = sys.executable
             os.execl(python, os.path.abspath('main.py'), *sys.argv)
         await playlistplay(ctx)
-        await reset()                                          # call to reset variable
 
 
 
@@ -574,17 +576,7 @@ async def getYoutubeUrls():
 #####################################################
 @client.event
 async def reset():
-    global watch_link
-    global url
-    global title
-    global songs
-    global artists
-    global count
-    global counter
-    global playlist_total
-    global msg
-    global skip_song
-    watch_link = ["", "", "", "", ""]
+    global watch_link, url, title, songs, artists, count, counter, playlist_total, msg, skip_song, playlist_ID, bot_playlist, song_name, playlist_response, track_id, message_play
     url = ["", "", "", "", ""]
     watch_link = []
     title = ""
@@ -594,7 +586,18 @@ async def reset():
     counter = 0
     playlist_total = 0
     msg = ""
+    playlist_ID = ""
     skip_song = False
+    message_play = ""
+    url = ["", "", "", "", ""]
+    watch_link = []
+    title = ""
+    songs.clear()
+    artists.clear()
+    bot_playlist = []
+    song_name = ""
+    playlist_response = ''
+    track_id = ''
 
 
 a = SaveSongs()
