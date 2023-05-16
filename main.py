@@ -10,7 +10,6 @@ import asyncio
 import datetime
 import sys
 import time
-import youtube_dl
 import json
 import os
 import re
@@ -208,7 +207,7 @@ class SaveSongs:
     ############### SEARCH SONG ################
     ############################################
     def search_song(self,msg):
-        global message_play, track_name, track_id, artists, songs
+        global message_play, track_name, track_id, artists, songs, token
 
         self.song_to_search = msg  # song_to_search
         query = "http://api.spotify.com/v1/search/?type=track&q={}&include_external=audio&limit=4&market=US&limit=1".format(self.song_to_search)
@@ -245,7 +244,12 @@ async def on_ready():
 
 @client.event
 async def on_message(ctx):
-    global playlist_total, counter, msg, skip_song, video_length, str_msg_list, restart_time, songs, artists
+    global playlist_total, counter, msg, skip_song, video_length, str_msg_list, restart_time, songs, artists, token, refresh_token, access_token
+
+    # ensures a new token
+    if int(time.time()) > int(restart_time):
+        Refresh.refresh(ctx)
+        restart_time = time.time()+3300                 # update token refresh timer
 
     if ctx.author == client.user: # checks to see if the message was sent by a bot
         return
@@ -293,9 +297,10 @@ async def on_message(ctx):
         artists.clear()
 
         # ensures a new token
-        if int(time.time()) > int(restart_time):
-            python = sys.executable
-            os.execl(python, os.path.abspath('main.py'), *sys.argv)
+        #if int(time.time()) > int(restart_time):
+            #Refresh.refresh(ctx)
+            #python = sys.executable
+            #os.execl(python, os.path.abspath('main.py'), *sys.argv)
         await playlistplay(ctx)
 
 
@@ -313,6 +318,17 @@ async def on_message(ctx):
 
         except:
             print("Event loop stopped before Future completed")
+
+    ############## SKIP PLAYLIST ##############
+    ###########################################
+    if msg.startswith('$p skip'):
+        try:
+            songs.clear()                               # clear playlist data
+            artists.clear()                             # clear playlist data
+            await stop(ctx)                             # stop audio stream
+
+        except:
+            print("Error skipping playlist")
 
     ################ PLAY A SONG ##############
     ###########################################
@@ -359,7 +375,8 @@ async def help(ctx):
                              '\n$p select [name of playlist] - selects a playlist'
                              '\n$skip - skips a song'
                              '\n$spam [@user] - spams @\'s a user'
-                             '\n$p songs - lists all songs in selected playlist')
+                             '\n$p songs - lists all songs in selected playlist'
+                             '\n$p skip - skips all songs in the playlist')
 
 ############### SEND A MSG FUNCTION #############
 #################################################
@@ -598,7 +615,6 @@ async def reset():
     song_name = ""
     playlist_response = ''
     track_id = ''
-
 
 a = SaveSongs()
 a.call_refresh()
