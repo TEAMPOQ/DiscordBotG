@@ -73,6 +73,7 @@ class SaveSongs:
         self.alb_uri = [" ", " ", " ", " "]
 
 
+
     def ask_user(self):
         song_to_search = input("Enter Spotify Playlist ID >> ")
         self.song_to_search = "6Rz9QFcQCvqaILMv7y95W2"#song_to_search
@@ -244,15 +245,11 @@ async def on_ready():
 
 @client.event
 async def on_message(ctx):
-    global playlist_total, counter, msg, skip_song, video_length, str_msg_list, restart_time, songs, artists, token, \
-        refresh_token, access_token, spotifyObject, SPOTIPY_CLIENT_ID, SPOTIPY_CLIENT_SECRET, SPOTIPY_REDIRECT_URI, scope, SPOTIFY_USERNAME
+    global playlist_total, counter, msg, skip_song, video_length, str_msg_list, restart_time, songs, artists, token
 
     # ensures a new token
     if int(time.time()) > int(restart_time):
-        Refresh.refresh(ctx)
-        token = spotipy.SpotifyOAuth(client_id=SPOTIPY_CLIENT_ID, client_secret=SPOTIPY_CLIENT_SECRET,
-                                     redirect_uri=SPOTIPY_REDIRECT_URI, scope=scope, username=SPOTIFY_USERNAME)
-        spotifyObject = spotipy.Spotify(auth_manager=token)
+        a.call_refresh()
         restart_time = time.time() + 3300  # update token refresh timer
 
     if ctx.author == client.user: # checks to see if the message was sent by a bot
@@ -267,10 +264,11 @@ async def on_message(ctx):
     ########### FORCE TOKEN REFRESH ############
     ############################################
     if msg.startswith('$refresh'):
-        Refresh.refresh(ctx)
-        token = spotipy.SpotifyOAuth(client_id=SPOTIPY_CLIENT_ID, client_secret=SPOTIPY_CLIENT_SECRET,
-                                     redirect_uri=SPOTIPY_REDIRECT_URI, scope=scope, username=SPOTIFY_USERNAME)
-        spotifyObject = spotipy.Spotify(auth_manager=token)
+        #Refresh.refresh(ctx)
+        #token = spotipy.SpotifyOAuth(client_id=SPOTIPY_CLIENT_ID, client_secret=SPOTIPY_CLIENT_SECRET,
+        #                             redirect_uri=SPOTIPY_REDIRECT_URI, scope=scope, username=SPOTIFY_USERNAME)
+        #spotifyObject = spotipy.Spotify(auth_manager=token)
+        a.call_refresh()
         restart_time = time.time() + 3300  # update token refresh timer
 
     ############ LIST ALL PLAYLIST #############
