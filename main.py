@@ -244,12 +244,16 @@ async def on_ready():
 
 @client.event
 async def on_message(ctx):
-    global playlist_total, counter, msg, skip_song, video_length, str_msg_list, restart_time, songs, artists, token, refresh_token, access_token
+    global playlist_total, counter, msg, skip_song, video_length, str_msg_list, restart_time, songs, artists, token, \
+        refresh_token, access_token, spotifyObject, SPOTIPY_CLIENT_ID, SPOTIPY_CLIENT_SECRET, SPOTIPY_REDIRECT_URI, scope, SPOTIFY_USERNAME
 
     # ensures a new token
     if int(time.time()) > int(restart_time):
         Refresh.refresh(ctx)
-        restart_time = time.time()+3300                 # update token refresh timer
+        token = spotipy.SpotifyOAuth(client_id=SPOTIPY_CLIENT_ID, client_secret=SPOTIPY_CLIENT_SECRET,
+                                     redirect_uri=SPOTIPY_REDIRECT_URI, scope=scope, username=SPOTIFY_USERNAME)
+        spotifyObject = spotipy.Spotify(auth_manager=token)
+        restart_time = time.time() + 3300  # update token refresh timer
 
     if ctx.author == client.user: # checks to see if the message was sent by a bot
         return
@@ -259,6 +263,15 @@ async def on_message(ctx):
     ############################ USER COMMANDS #############################
     ########################################################################
     ########################################################################
+
+    ########### FORCE TOKEN REFRESH ############
+    ############################################
+    if msg.startswith('$refresh'):
+        Refresh.refresh(ctx)
+        token = spotipy.SpotifyOAuth(client_id=SPOTIPY_CLIENT_ID, client_secret=SPOTIPY_CLIENT_SECRET,
+                                     redirect_uri=SPOTIPY_REDIRECT_URI, scope=scope, username=SPOTIFY_USERNAME)
+        spotifyObject = spotipy.Spotify(auth_manager=token)
+        restart_time = time.time() + 3300  # update token refresh timer
 
     ############ LIST ALL PLAYLIST #############
     ############################################
