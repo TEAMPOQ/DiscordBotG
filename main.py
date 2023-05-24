@@ -337,6 +337,7 @@ async def on_message(ctx):
             songs.clear()                               # clear playlist data
             artists.clear()                             # clear playlist data
             await stop(ctx)                             # stop audio stream
+            await reset()                               # reset all variables
 
         except:
             print("Error skipping playlist")
