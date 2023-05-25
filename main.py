@@ -367,6 +367,103 @@ async def on_message(ctx):
     if msg.startswith('$help'):
         await help(ctx)
 
+    if msg == "$haven":
+        response = requests.get('https://theglobalgaming.com/valorant/best-agents-haven')
+        text = response.text
+        agents = ""
+        while text.find('<h2>') != -1:
+            temp_num = text.find('<h2>')  # start of name
+            temp_num2 = text.find('</h2>')  # end of name
+            agents += " | " + (text[temp_num + 4:temp_num2] + " | ")
+            text = text[temp_num2 + 4:]
+
+        print(agents)
+        await sendMsg(ctx, agents)
+
+    if msg == "$split":
+        response = requests.get('https://theglobalgaming.com/valorant/best-agents-split')
+        text = response.text
+        agents = ""
+        while text.find('<div class="article-tag">') != -1:
+            temp_num = text.find('<div class="article-tag">')  # start of name
+            temp_num2 = text[temp_num + 25:].find('</div>') + temp_num + 25  # end of name
+            agents += " | " + (text[temp_num + 4:temp_num2] + " | ")
+            text = text[temp_num2:]
+
+        print(agents)
+        await sendMsg(ctx, agents)
+
+
+    if msg == "$bind":
+        response = requests.get('https://theglobalgaming.com/valorant/best-agents-bind')
+        text = response.text
+        agents = ""
+        while text.find('<h2>') != -1:
+            temp_num = text.find('<h2>')  # start of name
+            temp_num2 = text.find('</h2>')  # end of name
+            agents += " | " + (text[temp_num + 4:temp_num2] + " | ")
+            text = text[temp_num2 + 4:]
+
+        print(agents)
+        await sendMsg(ctx, agents)
+
+    if msg == "$ascent":
+        response = requests.get('https://theglobalgaming.com/valorant/best-agents-ascent')
+        text = response.text
+        agents = ""
+        while text.find('<h2>') != -1:
+            temp_num = text.find('<h2>')  # start of name
+            temp_num2 = text.find('</h2>')  # end of name
+            agents += " | " + (text[temp_num + 4:temp_num2] + " | ")
+            text = text[temp_num2 + 4:]
+
+        print(agents)
+        await sendMsg(ctx, agents)
+
+    if msg == "$icebox":
+        response = requests.get('https://theglobalgaming.com/valorant/best-agents-icebox')
+        text = response.text
+        agents = ""
+        while text.find('<h2>') != -1:
+            temp_num = text.find('<h2>')  # start of name
+            temp_num2 = text.find('</h2>')  # end of name
+            agents += " | " + (text[temp_num + 4:temp_num2] + " | ")
+            text = text[temp_num2 + 4:]
+
+        print(agents)
+        await sendMsg(ctx, agents)
+
+    if msg == "$breeze":
+        response = requests.get('https://theglobalgaming.com/valorant/best-agents-breeze')
+        text = response.text
+        agents = ""
+        while text.find('<h2 id="') != -1:
+            count = text.find('<h2 id="') + 8
+            temp_str = text[text.find('<h2 id="'):]  # start of name
+            count += temp_str.find('>') + 1
+            temp_str = temp_str[temp_str.find('>') + 1: temp_str.find('</h2>')]
+            agents += " | " + temp_str + " | "
+            text = text[count:]
+
+        print(agents)
+        await sendMsg(ctx, agents)
+
+    if msg == "$fracture":
+        response = requests.get('https://theglobalgaming.com/valorant/best-agents-fracture')
+        text = response.text
+        agents = ""
+        while text.find('<h2 id="') != -1:
+            count = text.find('<h2 id="') + 8
+            temp_str = text[text.find('<h2 id="'):]  # start of name
+            count += temp_str.find('>') + 1
+            temp_str = temp_str[temp_str.find('>') + 1: temp_str.find('</h2>')]
+
+            agents += " | " + temp_str + " | "
+            text = text[count:]
+
+        print(agents)
+        await sendMsg(ctx, agents)
+
 
 ############################ BOT FUNCTIONS #############################
 ########################################################################
@@ -477,6 +574,7 @@ async def download(ctx):
         # download the audio stream to a file
         audio.download(output_path='./', filename='song.mp3')
     except:
+        print("download failed")
         pass
     await music_channel.send(song_name + " will begin shortly!") # send in discord chat
 
