@@ -387,7 +387,7 @@ async def on_message(ctx):
         while text.find('<div class="article-tag">') != -1:
             temp_num = text.find('<div class="article-tag">')  # start of name
             temp_num2 = text[temp_num + 25:].find('</div>') + temp_num + 25  # end of name
-            agents += " | " + (text[temp_num + 4:temp_num2] + " | ")
+            agents += " | " + (text[temp_num + 25:temp_num2] + " | ")
             text = text[temp_num2:]
 
         print(agents)
@@ -563,17 +563,17 @@ async def download(ctx):
     voice = ctx.author.voice
     out_file = None
 
-    print('1')                                                          # debug purposes
-    yt = YouTube(str(watch_link))                                       # url input from user
+    print('1')                                                              # debug purposes
+    yt = YouTube(str(watch_link))                                           # url input from user
 
     print('2')
     try:
         # get the audio stream
-        audio = yt.streams.get_audio_only()
-        print(audio)
+        audio = yt.streams.filter(only_audio=True, abr='160kbps').first()   # get stream
         # download the audio stream to a file
-        audio.download(output_path='./', filename='song.mp3')
-    except:
+        audio.download(output_path='./', filename='song.mp3')               # download
+    except Exception as e:
+        print(e)
         print("download failed")
         pass
     await music_channel.send(song_name + " will begin shortly!") # send in discord chat
