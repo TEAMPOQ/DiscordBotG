@@ -5,6 +5,9 @@ Locate your local python3 library files inorder to update these.
 ***ADD DISCORD TOKEN ON LINE 732***
 client.run("")
 
+***UPDATE CONTENTS IN "secrets.py"***
+spotify documentation used to get info needed for secrets.py
+https://developer.spotify.com/documentation/web-api/tutorials/getting-started
 
 ***USER COMMANDS***
 $p add [song name] 		        - adds a song top playlist'
