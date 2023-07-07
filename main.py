@@ -48,10 +48,10 @@ msg = ""
 song_name = ""
 skip_song = False
 playlist_response = ''
-SPOTIFY_USERNAME='31nqczrdhhi2y4o2pnyv53ihfncq'
-SPOTIPY_CLIENT_ID='3c7d7773da494e2db73293f7361348b3'
-SPOTIPY_CLIENT_SECRET='3b72a8bf993642869c4caf9b6af3fb11'
-SPOTIPY_REDIRECT_URI='https://github.com/TEAMPOQ/DiscordBotG'
+SPOTIFY_USERNAME=''
+SPOTIPY_CLIENT_ID=''
+SPOTIPY_CLIENT_SECRET=''
+SPOTIPY_REDIRECT_URI=''
 restart_time = (time.time() + 3300)                # used as a timer to restart script
 playlist_ID = ''
 track_id = ''
@@ -263,7 +263,7 @@ async def on_message(ctx):
 
     ########### FORCE TOKEN REFRESH ############
     ############################################
-    if msg.startswith('$refresh'):
+    if msg.lower().startswith('$refresh'):
         #Refresh.refresh(ctx)
         #token = spotipy.SpotifyOAuth(client_id=SPOTIPY_CLIENT_ID, client_secret=SPOTIPY_CLIENT_SECRET,
         #                             redirect_uri=SPOTIPY_REDIRECT_URI, scope=scope, username=SPOTIFY_USERNAME)
@@ -273,29 +273,29 @@ async def on_message(ctx):
 
     ############ LIST ALL PLAYLIST #############
     ############################################
-    if msg.startswith('$p list'):
+    if msg.lower().startswith('$p list'):
         a.get_playlists()
         await sendMsg(ctx, str_msg_list)
 
     ######## LIST ALL SONG IN PLAYLIST #########
     ############################################
-    if msg.startswith('$p songs'):
+    if msg.lower().startswith('$p songs'):
         a.get_playlists_songs()
         await sendMsg(ctx, str_msg_list)
 
     ########### CREATE A  PLAYLIST #############
     ############################################
-    if msg.startswith('$p create'):
+    if msg.lower().startswith('$p create'):
         a.create_playlist(msg[10:])                #send command to create a new playlist
 
     ########### SELECT A  PLAYLIST #############
     ############################################
-    if msg.startswith('$p select'):
+    if msg.lower().startswith('$p select'):
         a.select_playlist(msg[10:])                #send command to create a new playlist
 
     ############## ADD A PLAYLIST ##############
     ############################################
-    if msg.startswith('$p add'):
+    if msg.lower().startswith('$p add'):
         if len(playlist_ID) < 1:
             await sendMsg('SELECT A PLAYLIST BEFORE ADDING A SONG-__-')
         else:
@@ -303,24 +303,17 @@ async def on_message(ctx):
 
     ############# PLAY A  PLAYLIST #############
     ############################################
-    if msg.startswith('$p play'):
+    if msg.lower().startswith('$p play'):
         songs.clear()
         artists.clear()
-
-        # ensures a new token
-        #if int(time.time()) > int(restart_time):
-            #Refresh.refresh(ctx)
-            #python = sys.executable
-            #os.execl(python, os.path.abspath('main.py'), *sys.argv)
         await playlistplay(ctx)
 
 
 
     ################ SKIP SONG ################
     ###########################################
-    if msg.startswith('$skip'):
+    if msg.lower().startswith('$skip'):
         try:
-            #await stop(ctx)
             playlist_total -= 1                         # adjust for list total
             counter += 1                                # adjust for index
             await stop(ctx)
@@ -332,7 +325,7 @@ async def on_message(ctx):
 
     ############## SKIP PLAYLIST ##############
     ###########################################
-    if msg.startswith('$p skip'):
+    if msg.lower().startswith('$p skip'):
         try:
             songs.clear()                               # clear playlist data
             artists.clear()                             # clear playlist data
@@ -344,7 +337,7 @@ async def on_message(ctx):
 
     ################ PLAY A SONG ##############
     ###########################################
-    if msg.startswith('$play'):
+    if msg.lower().startswith('$play'):
         try:
             await play(ctx, msg[6:])
         except:
@@ -354,17 +347,17 @@ async def on_message(ctx):
 
     ################ SPAM A USER ##############
     ###########################################
-    if msg.startswith('$spam'):
+    if msg.lower().startswith('$spam'):
         #try:
         username_spam = msg[6:]     # username were going to spam
-        await spamUser(ctx, username_spam)
+        #await spamUser(ctx, username_spam)
 
     ################ CONNECT BOT TO CHANNEL #############
     #####################################################
-    if msg.startswith('$connect'):
+    if msg.lower().startswith('$connect'):
         await connect(ctx)
 
-    if msg.startswith('$help'):
+    if msg.lower().startswith('$help'):
         await help(ctx)
 
     if msg == "$haven":
