@@ -8,10 +8,7 @@
 
 import asyncio
 import datetime
-import sys
 import time
-import json
-import os
 import re
 import urllib.request
 import spotipy
@@ -25,8 +22,7 @@ from discord.ext import commands
 from pytube import YouTube
 from keep_alive import keep_alive
 from refresh import Refresh
-from secrets import spotify_user_id, playlist_id, refresh_token, access_token
-import spotipy.util as util
+from secrets import spotify_user_id, playlist_id
 
 message_play = ""
 intents = discord.Intents.all()
@@ -48,10 +44,16 @@ msg = ""
 song_name = ""
 skip_song = False
 playlist_response = ''
+
+'''
+SPOTIFY_USERNAME, SPOTIPY_CLIENT_ID, SPOTIPY_CLIENT_SECRET, SPOTIPY_REDIRECT_URI
+THESE NEED PRIOR SET UP WITH THE SPOTIFY API WHICH CAN BE FOUND HERE >> https://developer.spotify.com/documentation/web-api
+'''
 SPOTIFY_USERNAME=''
 SPOTIPY_CLIENT_ID=''
 SPOTIPY_CLIENT_SECRET=''
 SPOTIPY_REDIRECT_URI=''
+
 restart_time = (time.time() + 3300)                # used as a timer to restart script
 playlist_ID = ''
 track_id = ''
@@ -73,10 +75,6 @@ class SaveSongs:
         self.alb_uri = [" ", " ", " ", " "]
 
 
-
-    def ask_user(self):
-        song_to_search = input("Enter Spotify Playlist ID >> ")
-        self.song_to_search = "6Rz9QFcQCvqaILMv7y95W2"#song_to_search
 
     ############### GET PLAYLIST ###############
     ############################################
@@ -106,16 +104,12 @@ class SaveSongs:
 
         str_msg_list = "SONGS: "
         list_num = 0
-        #spotifyObject.set_auth(self.spotify_token)
         playlist_songs  = spotifyObject.playlist_items(playlist_id=playlist_ID, limit=25, offset=0, market=None)
         num_tracks      = spotifyObject.playlist_items(playlist_id=playlist_ID, limit=25, offset=0, market=None, fields='total')
         song_names      = spotifyObject.playlist_items(playlist_id=playlist_ID, limit=25, offset=0, market=None, fields="items(track(name))")
-        #artists_names   = spotifyObject.playlist_items(playlist_id=playlist_ID, limit=25, offset=0, market=None, fields="items(track(artists(name)))")
         temp_str_songs = str(song_names)
-        #temp_str_artists = str(artists_names)
         append_str = ""
         trackss = str(num_tracks)[10: -1]
-        #print(playlist_songs)
         for x in range(int(trackss)-1):
             artists_names = spotifyObject.playlist_items(playlist_id=playlist_ID, limit=1, offset=int(x),
                                                          market=None, fields="items(track(artists(name)))")
@@ -162,23 +156,22 @@ class SaveSongs:
                                 headers={"Content-Type": "application/json", "Authorization": "Bearer {}".format(self.spotify_token), "Host": "api.spotify.com"})
 
         response_json = response.json()
-        playlist_total = response_json["tracks"]["total"]
-        if playlist_total > 25:
+        playlist_total = response_json["tracks"]["total"]       # get playlist size
+        if playlist_total > 25:                                 # if size is larger than 25 set to 25
             playlist_total = 25
 
-        #print(response_json)
-        for x in range(playlist_total):
+
+        for x in range(playlist_total):                                                 # for size of playlist add the song and artist to list
             songs.append(response_json["tracks"]["items"][x]["track"]["name"])
             artists.append(response_json["tracks"]["items"][x]["track"]["album"]["artists"][0]["name"])
 
     ############# Create Playlist ##############
     ############################################
     def create_playlist(self, name):
-        #create a new playlist
-        today = date.today()
-        todayFormatted = today.strftime("%d/%n/%Y")
+        today = date.today()                                # get today's date
+        todayFormatted = today.strftime("%d/%n/%Y")         # format the date day/month/year
 
-        #sp.set_auth(access_token)
+        # Function to create a playlist
         spotifyObject.user_playlist_create(user=str(SPOTIFY_USERNAME), name=str(name), public=True, collaborative=False, description=todayFormatted)
 
     ############# Select Playlist ##############
@@ -201,9 +194,9 @@ class SaveSongs:
     def add_playlist(self, name):
         global playlist_ID
         global track_id
-        a.search_song(name)
-        print(track_id)
-        spotifyObject.playlist_add_items(playlist_id=playlist_ID, items=[track_id], position=0)
+        a.search_song(name)                                                                                         # lookup the song by name
+        print(track_id)                                                                                             # ensure the track id is correct
+        spotifyObject.playlist_add_items(playlist_id=playlist_ID, items=[track_id], position=0)                     # Function to add a song to a playlist
 
     ############### SEARCH SONG ################
     ############################################
@@ -211,10 +204,10 @@ class SaveSongs:
         global message_play, track_name, track_id, artists, songs, token
 
         self.song_to_search = msg  # song_to_search
-        query = "http://api.spotify.com/v1/search/?type=track&q={}&include_external=audio&limit=4&market=US&limit=1".format(self.song_to_search)
+        query = "http://api.spotify.com/v1/search/?type=track&q={}&include_external=audio&limit=4&market=US&limit=1".format(self.song_to_search)    # function to look up a song with spotify api
 
-        track_name = ["","","","",""]
-        artist_name = ["","","","",""]
+        track_name = [""]
+        artist_name = [""]
 
         response = requests.get(query, headers={"Content-Type": "application/json", "Authorization":"Bearer {}".format(self.spotify_token)})
         response_json = response.json()
@@ -243,19 +236,22 @@ async def on_ready():
     print('We have logged in as {0.user}'.format(client))
 
 
+
+############ GETS RAN EVERYTIME  ############
+############ A MESSAGE IS SENT   ############
 @client.event
 async def on_message(ctx):
     global playlist_total, counter, msg, skip_song, video_length, str_msg_list, restart_time, songs, artists, token
 
     # ensures a new token
-    if int(time.time()) > int(restart_time):
-        a.call_refresh()
-        restart_time = time.time() + 3300  # update token refresh timer
+    if int(time.time()) > int(restart_time):    # timer check
+        a.call_refresh()                        # call refresh token or else Spotify api timeout
+        restart_time = time.time() + 3300       # update token refresh timer
 
-    if ctx.author == client.user: # checks to see if the message was sent by a bot
+    if ctx.author == client.user:               # checks to see if the message was sent by a bot
         return
-    msg = ctx.content
-    channel = ctx.author.voice.channel
+    msg = ctx.content                           # gets the content of the message
+    channel = ctx.author.voice.channel          # gets channel to the channel that the author is in
 
     ############################ USER COMMANDS #############################
     ########################################################################
@@ -357,105 +353,13 @@ async def on_message(ctx):
     if msg.lower().startswith('$connect'):
         await connect(ctx)
 
+
+    ############## PRINT LIST OF FUNCTIONS ##############
+    #####################################################
     if msg.lower().startswith('$help'):
         await help(ctx)
 
-    if msg == "$haven":
-        response = requests.get('https://theglobalgaming.com/valorant/best-agents-haven')
-        text = response.text
-        agents = ""
-        while text.find('<h2>') != -1:
-            temp_num = text.find('<h2>')  # start of name
-            temp_num2 = text.find('</h2>')  # end of name
-            agents += " | " + (text[temp_num + 4:temp_num2] + " | ")
-            text = text[temp_num2 + 4:]
 
-        print(agents)
-        await sendMsg(ctx, agents)
-
-    if msg == "$split":
-        response = requests.get('https://theglobalgaming.com/valorant/best-agents-split')
-        text = response.text
-        agents = ""
-        while text.find('<div class="article-tag">') != -1:
-            temp_num = text.find('<div class="article-tag">')  # start of name
-            temp_num2 = text[temp_num + 25:].find('</div>') + temp_num + 25  # end of name
-            agents += " | " + (text[temp_num + 25:temp_num2] + " | ")
-            text = text[temp_num2:]
-
-        print(agents)
-        await sendMsg(ctx, agents)
-
-
-    if msg == "$bind":
-        response = requests.get('https://theglobalgaming.com/valorant/best-agents-bind')
-        text = response.text
-        agents = ""
-        while text.find('<h2>') != -1:
-            temp_num = text.find('<h2>')  # start of name
-            temp_num2 = text.find('</h2>')  # end of name
-            agents += " | " + (text[temp_num + 4:temp_num2] + " | ")
-            text = text[temp_num2 + 4:]
-
-        print(agents)
-        await sendMsg(ctx, agents)
-
-    if msg == "$ascent":
-        response = requests.get('https://theglobalgaming.com/valorant/best-agents-ascent')
-        text = response.text
-        agents = ""
-        while text.find('<h2>') != -1:
-            temp_num = text.find('<h2>')  # start of name
-            temp_num2 = text.find('</h2>')  # end of name
-            agents += " | " + (text[temp_num + 4:temp_num2] + " | ")
-            text = text[temp_num2 + 4:]
-
-        print(agents)
-        await sendMsg(ctx, agents)
-
-    if msg == "$icebox":
-        response = requests.get('https://theglobalgaming.com/valorant/best-agents-icebox')
-        text = response.text
-        agents = ""
-        while text.find('<h2>') != -1:
-            temp_num = text.find('<h2>')  # start of name
-            temp_num2 = text.find('</h2>')  # end of name
-            agents += " | " + (text[temp_num + 4:temp_num2] + " | ")
-            text = text[temp_num2 + 4:]
-
-        print(agents)
-        await sendMsg(ctx, agents)
-
-    if msg == "$breeze":
-        response = requests.get('https://theglobalgaming.com/valorant/best-agents-breeze')
-        text = response.text
-        agents = ""
-        while text.find('<h2 id="') != -1:
-            count = text.find('<h2 id="') + 8
-            temp_str = text[text.find('<h2 id="'):]  # start of name
-            count += temp_str.find('>') + 1
-            temp_str = temp_str[temp_str.find('>') + 1: temp_str.find('</h2>')]
-            agents += " | " + temp_str + " | "
-            text = text[count:]
-
-        print(agents)
-        await sendMsg(ctx, agents)
-
-    if msg == "$fracture":
-        response = requests.get('https://theglobalgaming.com/valorant/best-agents-fracture')
-        text = response.text
-        agents = ""
-        while text.find('<h2 id="') != -1:
-            count = text.find('<h2 id="') + 8
-            temp_str = text[text.find('<h2 id="'):]  # start of name
-            count += temp_str.find('>') + 1
-            temp_str = temp_str[temp_str.find('>') + 1: temp_str.find('</h2>')]
-
-            agents += " | " + temp_str + " | "
-            text = text[count:]
-
-        print(agents)
-        await sendMsg(ctx, agents)
 
 
 ############################ BOT FUNCTIONS #############################
@@ -518,8 +422,7 @@ async def playlistplay(ctx):
     if ctx.author == client.user:                                       # checks to see if the message was sent by a bot
         return
 
-    # search playlist function call with spotify api
-    a.get_playlists_songs()
+    a.get_playlists_songs()                                             # search playlist function call with spotify api
 
     for x in songs:
         try:
@@ -590,28 +493,28 @@ async def connect(ctx):
 #####################################################
 @client.event
 async def play(ctx, song):
-    channel = ctx.author.voice.channel
+    channel = ctx.author.voice.channel          # get voice channel of author
     voice = ctx.channel.guild.voice_client
-    print('1')                                 # debug purposes
-    a.search_song(song)
+    print('1')                                  # used for debugging
+    a.search_song(song)                         # call the search song function to search spotify for the song
     print('2')
-    await getYoutubeUrls()
+    await getYoutubeUrls()                      # get url link for the desired song
     print('3')
     print('4')
     try:
         print('5')
-        await download(ctx)
+        await download(ctx)                     # attempt to download the song
         # play song function
     except:
         print('error with download')
     try:
         if voice is None:
-            voice = await channel.connect()
-        elif voice.channel != channel:
-            voice.move_to(channel)
+            voice = await channel.connect()         # connects if to channel if not already connected
+        else:
+            await voice.move_to(channel)            # moves to the same channel at the author
 
         source = FFmpegPCMAudio("song.mp3")
-        player = voice.play(source)
+        player = voice.play(source)                 # play the song that was downloaded
     except:
         print("error playing song")
 
@@ -659,11 +562,11 @@ async def stop(ctx):
 #####################################################
 async def GetDuration():
     global watch_link, video_length
-    info = requests.get(watch_link)
-    info = info.text
-    info = info[info.find('approxDurationMs":"')+19:]
-    info = info[:info.find('"')]
-    video_length = (int(info)/1000)
+    info = requests.get(watch_link)                         # get request of youtube url video
+    info = info.text                                        # set info to the source
+    info = info[info.find('approxDurationMs":"')+19:]       # grab the video duration in milliseconds
+    info = info[:info.find('"')]                            # cut off unneeded text
+    video_length = (int(info)/1000)                         # convert milliseconds to seconds
     print(video_length)
 
 ############# GET URL FOR SONG FUNCTION #############
@@ -677,19 +580,19 @@ async def getYoutubeUrls():
     video_ids = []
 
     print('1y')
-    html = urllib.request.urlopen(anyascii(message_play))
+    html = urllib.request.urlopen(anyascii(message_play))           # get request
     print('2y')
-    response = html.read()
+    response = html.read()                                          # response text
     print('3y')
-    video_ids = re.findall(r"watch\?v=(\S{11})", str(response))
+    video_ids = re.findall(r"watch\?v=(\S{11})", str(response))     # find all occurrences of text watch\?v= response save as the video id's
     print('4y')
-    watch_link = "https://www.youtube.com/watch?v=" + video_ids[0]
+    watch_link = "https://www.youtube.com/watch?v=" + video_ids[0]  # attach video id to link to get complete video url
     print('5y')
-    vid = pytube.YouTube(watch_link)
-    song_name = vid.title
+    vid = pytube.YouTube(watch_link)                                # using pytube set vid to YouTube video with desired url
+    song_name = vid.title                                           # grab video title with .title function
 
     print('6y')
-    await GetDuration()
+    await GetDuration()                                             # I believe pytube has a get duration function however it broke one time so I create one
     print(watch_link)
 
 ############# RESET VARIABLES FUNCTION ##############
@@ -722,4 +625,4 @@ async def reset():
 a = SaveSongs()
 a.call_refresh()
 keep_alive()
-client.run("")
+client.run("")        # Put Discord token
